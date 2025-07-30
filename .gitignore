@@ -1,0 +1,29 @@
+# Root .gitignore for full-stack project
+
+# === Node.js (frontend) ===
+**/node_modules/
+**/.next/
+**/dist/
+**/build/
+**/.env.local
+**/.env.production
+**/.env.development
+**/.turbo/
+**/.vercel/
+**/.parcel-cache/
+
+# === Python (backend) ===
+**/__pycache__/
+**/*.py[cod]
+**/*.pyo
+**/env/
+**/venv/
+**/.venv/
+**/.env
+**/.env.*
+
+
+
+# === IDE ===
+.vscode/
+.idea/
