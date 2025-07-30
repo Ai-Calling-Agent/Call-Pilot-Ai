@@ -7,14 +7,16 @@ pydantic
 requests
 python-dotenv
 fastapi
-# uvicorn
-# httpx
-# psycopg2
-# sentence-transformers
-# faiss-cpu
-# pypdf
-# python-socketio[client]
-# elevenlabs
-# gtts
-# pydub
-# python-multipart
+uvicorn
+httpx
+psycopg2
+sentence-transformers
+faiss-cpu
+pypdf
+python-socketio[client]
+elevenlabs
+gtts
+pydub
+python-multipart
+twilio
+twilio[voice]
