@@ -1,4 +1,5 @@
 import base64
+from twilio_transcriber import TwilioTranscriber 
 import json
 from dotenv import load_dotenv
 load_dotenv()
@@ -30,21 +31,25 @@ async def test():
 async def websocket_connection(websocket:WebSocket):
     await websocket.accept()
     print("New Connection Initiated")
+    transcriber = TwilioTranscriber()
     try:
         while True: 
-            message = await websocket.receive_text()
-            parsed = json.loads(message)
-            event = parsed.get("event")
-            if event == "start":
-                print("🔊 Stream started:", parsed.get("streamSid"))
-
-            elif event == "media":
-                # media.payload is base64-encoded audio (you need to decode + process for STT)
-                print("🎧 Media received (base64 audio):", parsed["media"]["payload"][:30], "...")
-
-            elif event == "stop":
-                print("🛑 Stream ended")
-                break
+           message = await websocket.receive_text()
+           data = json.loads(message)
+           match data["event"]:
+                case "connected":
+                    transcriber.connect()
+                    print("Twilio Connected!!")
+                case "start":
+                    print("Twilio started!!!")
+                case "media":
+                   payload_b64 = data["media"]["payload"]
+                   payload_mulaw =base64.b64decode(payload_b64)
+                   transcriber.stream(payload_mulaw)   
+                case "stop":
+                   print("Twilio Stopped")
+                   transcriber.close()
+                   print("transcriber closed!!")      
             
     except WebSocketDisconnect:
         print("❌ Client disconnected")

@@ -1,14 +1,15 @@
 from fastapi import APIRouter, Request, Response
 
+from constant.generate_url import generate_Socket_url
 
+url = generate_Socket_url("ws")
+print("uuuurlll",url)
 async def message_in_call(req:Request):
-    host = req.headers.get("host") 
-    stream_url = f"wss://{host}/ws"
 
     twiml = f"""
     <Response>
         <Start>
-            <Stream url="{stream_url}" />  
+            <Stream url="{url}" />  
         </Start>
         <Say voice="alice" language="en-US">Hello from call AI</Say>
         <Pause length="30"/>
