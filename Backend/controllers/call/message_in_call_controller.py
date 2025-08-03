@@ -12,7 +12,7 @@ async def message_in_call(req:Request):
             <Stream url="{url}" />  
         </Start>
         <Say voice="alice" language="en-US">Hello from call AI</Say>
-        <Pause length="30"/>
+        <Pause length="1200"/>
     </Response>
     """
     return Response(content=twiml.strip(), media_type="text/xml")

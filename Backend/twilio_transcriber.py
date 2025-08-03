@@ -8,13 +8,21 @@ from dotenv import load_dotenv
 load_dotenv()
 
 class TwilioTranscriber:
-    def __init__(self):
+    def __init__(self, on_final_transcript=None, on_complete_turn=None,frontend_websocket=None):
         self.api_key = os.getenv("ASSEMBLYAI_API_KEY")
         self.websocket = None
         self.running_transcript = ""
         self.audio_buffer = bytearray()
         self.buffer_size = 320  # 50ms at 8kHz mu-law (8000/20 = 400 samples, but Twilio sends 160 bytes per 20ms chunk)
         self.chunks_to_buffer = 3  # Buffer 3 chunks (60ms) to exceed 50ms minimum
+        self.on_final_transcript = on_final_transcript  # Callback for each final turn
+        self.on_complete_turn = on_complete_turn  # Callback for complete user turn (after silence)
+        self.frontend_websocket = frontend_websocket
+        # Turn aggregation
+        self.accumulated_turns = []
+        self.last_turn_time = None
+        self.silence_timeout = 2.0  # 2 seconds of silence before considering turn complete
+        self.turn_timeout_task = None
         
     async def connect(self):
         """Connect to AssemblyAI Universal-Streaming WebSocket"""
@@ -65,6 +73,53 @@ class TwilioTranscriber:
             if message_type == "Begin":
                 print(f"🟢 Session started: {data.get('id', 'N/A')}")
             
+            elif message_type == "Turn":
+                # Handle turn-based transcription results
+                transcript = data.get("transcript", "")
+                end_of_turn = data.get("end_of_turn", False)
+                confidence = data.get("end_of_turn_confidence", 0.0)
+                turn_order = data.get("turn_order", 0)
+                
+                if transcript:
+                    if end_of_turn:
+                        print(f"✅ Final Turn: {transcript} (confidence: {confidence:.2f})")
+                        
+                        # This is a final transcript segment
+                        final_result = {
+                            "transcript": transcript,
+                            "confidence": confidence,
+                            "turn_order": turn_order,
+                            "words": data.get("words", []),
+                            "end_of_turn": True,
+                            "timestamp": asyncio.get_event_loop().time()
+                        }
+                        
+                        # Add to accumulated turns
+                        self.accumulated_turns.append(final_result)
+                        self.last_turn_time = final_result["timestamp"]
+                        
+                        # Cancel previous timeout and start new one
+                        if self.turn_timeout_task:
+                            self.turn_timeout_task.cancel()
+                        
+                        self.turn_timeout_task = asyncio.create_task(
+                            self._wait_for_silence_timeout()
+                        )
+                        
+                        # Call the individual turn callback if provided
+                        if self.on_final_transcript:
+                            await self.on_final_transcript(final_result)
+
+                        if self.frontend_websocket:
+                            await self.frontend_websocket.send_json({
+                                "type": "final_transcript",
+                                "text": transcript,
+                                "confidence": confidence
+                            })
+
+                    else:
+                        print(f"🟡 Partial Turn: {transcript}", end='\r')
+            
             elif message_type == "PartialTranscript":
                 text = data.get("text", "")
                 if text:
@@ -79,6 +134,8 @@ class TwilioTranscriber:
             
             elif message_type == "SessionTerminated" or message_type == "End":
                 print("🔒 Session terminated")
+                # Process any remaining turns
+                await self._process_complete_turn()
             
             elif message_type == "Error":
                 error_code = data.get("code", "unknown")
@@ -90,6 +147,49 @@ class TwilioTranscriber:
                 print(f"📝 Unknown message type: {message_type}, data: {data}")
         else:
             print(f"📝 Non-dict response: {data}")
+    
+    async def _wait_for_silence_timeout(self):
+        """Wait for silence timeout, then process complete turn"""
+        try:
+            await asyncio.sleep(self.silence_timeout)
+            await self._process_complete_turn()
+        except asyncio.CancelledError:
+            # Timeout was cancelled because new speech was detected
+            pass
+    
+    async def _process_complete_turn(self):
+        """Process accumulated turns as one complete user turn"""
+        if not self.accumulated_turns:
+            return
+        
+        # Combine all accumulated transcripts
+        combined_transcript = " ".join([turn["transcript"] for turn in self.accumulated_turns])
+        
+        # Calculate average confidence
+        avg_confidence = sum([turn["confidence"] for turn in self.accumulated_turns]) / len(self.accumulated_turns)
+        
+        # Create complete turn result
+        complete_turn = {
+            "transcript": combined_transcript.strip(),
+            "confidence": avg_confidence,
+            "num_segments": len(self.accumulated_turns),
+            "segments": self.accumulated_turns.copy(),
+            "is_complete_turn": True
+        }
+        if self.on_complete_turn:
+            await self.on_complete_turn(complete_turn)
+        
+        print(f"🎯 COMPLETE USER TURN: '{complete_turn['transcript']}'")
+        print(f"   Combined from {complete_turn['num_segments']} segments")
+        print(f"   Average confidence: {complete_turn['confidence']:.2f}")
+        
+        # Call the complete turn callback (this goes to LLM)
+        if self.on_complete_turn:
+            await self.on_complete_turn(complete_turn)
+        
+        # Clear accumulated turns
+        self.accumulated_turns.clear()
+        self.last_turn_time = None
     
     async def stream_audio(self, audio_bytes):
         """Stream audio data to Universal-Streaming with buffering"""
