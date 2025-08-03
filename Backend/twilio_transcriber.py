@@ -8,18 +8,24 @@ from dotenv import load_dotenv
 load_dotenv()
 
 class TwilioTranscriber:
-    def __init__(self):
+    def __init__(self,on_final_transcript=None):
         self.api_key = os.getenv("ASSEMBLYAI_API_KEY")
         self.websocket = None
         self.running_transcript = ""
         self.audio_buffer = bytearray()
         self.buffer_size = 320  # 50ms at 8kHz mu-law (8000/20 = 400 samples, but Twilio sends 160 bytes per 20ms chunk)
         self.chunks_to_buffer = 3  # Buffer 3 chunks (60ms) to exceed 50ms minimum
+        self.on_final_transcript = on_final_transcript
         
     async def connect(self):
         """Connect to AssemblyAI Universal-Streaming WebSocket"""
         # Universal-Streaming endpoint with query parameters
-        uri = f"wss://streaming.assemblyai.com/v3/ws?sample_rate=8000&encoding=pcm_mulaw"
+        uri = (
+            "wss://streaming.assemblyai.com/v3/ws"
+            "?sample_rate=8000"
+            "&encoding=pcm_mulaw"
+            "&language_code=auto"
+        )
         
         # Create headers with API key
         headers = {
@@ -64,6 +70,36 @@ class TwilioTranscriber:
             
             if message_type == "Begin":
                 print(f"🟢 Session started: {data.get('id', 'N/A')}")
+
+             
+            elif message_type == "Turn":
+                # Handle turn-based transcription results
+                transcript = data.get("transcript", "")
+                end_of_turn = data.get("end_of_turn", False)
+                confidence = data.get("end_of_turn_confidence", 0.0)
+                turn_order = data.get("turn_order", 0)
+                
+                if transcript:
+                    if end_of_turn:
+                        print(f"✅ Final Turn: {transcript} (confidence: {confidence:.2f})")
+                        
+                        # This is the final transcript when user stops speaking
+                        final_result = {
+                            "transcript": transcript,
+                            "confidence": confidence,
+                            "turn_order": turn_order,
+                            "words": data.get("words", []),
+                            "end_of_turn": True
+                        }
+                        
+                        # Call the callback if provided
+                        if self.on_final_transcript:
+                            await self.on_final_transcript(final_result)
+                        
+                        # Store for voice agent processing
+                        self.running_transcript += " " + transcript if self.running_transcript else transcript
+                    else:
+                        print(f"🟡 Partial Turn: {transcript}", end='\r')    
             
             elif message_type == "PartialTranscript":
                 text = data.get("text", "")
@@ -128,7 +164,8 @@ class TwilioTranscriber:
                 print("🔒 Session terminated")
             except Exception as e:
                 print(f"❌ Error terminating session: {e}")
-    
+
+     
     def get_running_transcript(self):
         """Get the accumulated transcript for voice agent processing"""
         return self.running_transcript
