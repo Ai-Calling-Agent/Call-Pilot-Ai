@@ -8,6 +8,8 @@ from dotenv import load_dotenv
 load_dotenv()
 
 class TwilioTranscriber:
+    # function that will run automatically when object is created from this class
+    # using init to provide args for this object creation
     def __init__(self, on_final_transcript=None, on_complete_turn=None,frontend_websocket=None):
         self.api_key = os.getenv("ASSEMBLYAI_API_KEY")
         self.websocket = None
@@ -24,9 +26,9 @@ class TwilioTranscriber:
         self.silence_timeout = 2.0  # 2 seconds of silence before considering turn complete
         self.turn_timeout_task = None
         
+        
     async def connect(self):
         """Connect to AssemblyAI Universal-Streaming WebSocket"""
-        # Universal-Streaming endpoint with query parameters
         uri = f"wss://streaming.assemblyai.com/v3/ws?sample_rate=8000&encoding=pcm_mulaw"
         
         # Create headers with API key
@@ -35,24 +37,23 @@ class TwilioTranscriber:
         }
         
         try:
+            # step 1
             # Connect using headers for authentication
             self.websocket = await websockets.connect(uri, additional_headers=headers)
             print("🟢 Connected to Universal-Streaming")
             
-            # Start listening for responses
+            # Start listening for responses from assemblyAi
+            # Runs it in parallel, allows other things to run [async operation]
             asyncio.create_task(self.listen_for_responses())
             
         except Exception as e:
             print(f"❌ Connection error: {e}")
-            # Fallback to token-based auth if headers don't work
-            try:
-                fallback_uri = f"wss://streaming.assemblyai.com/v3/ws?sample_rate=8000&encoding=pcm_mulaw&token={self.api_key}"
-                self.websocket = await websockets.connect(fallback_uri)
-                print("🟢 Connected to Universal-Streaming (fallback)")
-                asyncio.create_task(self.listen_for_responses())
-            except Exception as fallback_error:
-                print(f"❌ Fallback connection error: {fallback_error}")
+           
     
+    # this method helps us to connect step 1 and step3
+    # get data from assemblyAi 
+    # generate into json
+    # pass into step 3
     async def listen_for_responses(self):
         """Listen for transcription responses"""
         try:
@@ -63,7 +64,10 @@ class TwilioTranscriber:
             print("🔒 WebSocket connection closed")
         except Exception as e:
             print(f"❌ Error listening for responses: {e}")
-    
+
+
+    # step 3 helps to handle data what we get from step2
+    # check data type and based on that we send response 
     async def handle_response(self, data):
         """Handle different types of responses from Universal-Streaming"""
         # Universal-Streaming sends different message formats
@@ -148,6 +152,30 @@ class TwilioTranscriber:
         else:
             print(f"📝 Non-dict response: {data}")
     
+      # step 4 sends chunks to assembly ai so it can parse into text 
+    async def stream_audio(self, audio_bytes):
+        """Stream audio data to Universal-Streaming with buffering"""
+        if self.websocket and self.websocket.close_code is None:
+            try:
+                # Add audio to buffer
+                self.audio_buffer.extend(audio_bytes)
+                
+                # Check if we have enough audio buffered (at least 50ms worth)
+                # Twilio sends 160 bytes per 20ms chunk, so we need at least 400 bytes for 50ms
+                min_buffer_size = 400  # 50ms worth of mu-law audio at 8kHz
+                
+                if len(self.audio_buffer) >= min_buffer_size:
+                    # Send the buffered audio
+                    audio_to_send = bytes(self.audio_buffer)
+                    await self.websocket.send(audio_to_send)
+                    
+                    # Clear the buffer
+                    self.audio_buffer.clear()
+                    
+            except Exception as e:
+                print(f"❌ Error streaming audio: {e}")
+    
+
     async def _wait_for_silence_timeout(self):
         """Wait for silence timeout, then process complete turn"""
         try:
@@ -191,28 +219,7 @@ class TwilioTranscriber:
         self.accumulated_turns.clear()
         self.last_turn_time = None
     
-    async def stream_audio(self, audio_bytes):
-        """Stream audio data to Universal-Streaming with buffering"""
-        if self.websocket and self.websocket.close_code is None:
-            try:
-                # Add audio to buffer
-                self.audio_buffer.extend(audio_bytes)
-                
-                # Check if we have enough audio buffered (at least 50ms worth)
-                # Twilio sends 160 bytes per 20ms chunk, so we need at least 400 bytes for 50ms
-                min_buffer_size = 400  # 50ms worth of mu-law audio at 8kHz
-                
-                if len(self.audio_buffer) >= min_buffer_size:
-                    # Send the buffered audio
-                    audio_to_send = bytes(self.audio_buffer)
-                    await self.websocket.send(audio_to_send)
-                    
-                    # Clear the buffer
-                    self.audio_buffer.clear()
-                    
-            except Exception as e:
-                print(f"❌ Error streaming audio: {e}")
-    
+ 
     async def terminate_session(self):
         """Terminate the transcription session"""
         if self.websocket and self.websocket.close_code is None:
