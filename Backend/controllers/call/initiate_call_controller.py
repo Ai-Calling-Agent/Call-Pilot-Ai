@@ -7,7 +7,7 @@ from models.call_request_model import CallRequest
 
 client = Client(account_sid, auth_token)
 url = generate_url("outgoingcallmessage")
-print("uuuurlll",url)
+
 
 async def make_outgoing_call(payload: CallRequest):
     try:

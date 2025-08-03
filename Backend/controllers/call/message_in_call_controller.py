@@ -3,7 +3,7 @@ from fastapi import APIRouter, Request, Response
 from constant.generate_url import generate_Socket_url
 
 url = generate_Socket_url("ws")
-print("uuuurlll",url)
+
 async def message_in_call(req:Request):
 
     twiml = f"""
