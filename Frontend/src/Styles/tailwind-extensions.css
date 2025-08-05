@@ -1,0 +1,13 @@
+/* styles/tailwind-extensions.css */
+@layer utilities {
+  .text-shadow {
+    text-shadow: 2px 2px 5px rgba(0, 0, 0, 0.2);
+  }
+
+  .btn-primary {
+    @apply px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700;
+  }
+  .bg-gray-base {
+    background-color: #1d1916;
+  }
+}
