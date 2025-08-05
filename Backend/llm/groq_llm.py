@@ -1,6 +1,13 @@
 import os
 from groq import Groq
+from dotenv import load_dotenv
 
+import os
+from groq import Groq
+import os
+
+
+load_dotenv()
 client = Groq(api_key=os.getenv("GROQ_API_KEY"))
 
 async def get_real_estate_response(user_input: str):
@@ -20,7 +27,7 @@ You:
                     "content": prompt,
                 }
             ],
-            model="mixtral-8x7b-32768",
+            model="llama3-8b-8192",
             temperature=0.7,
         )
         return chat_completion.choices[0].message.content

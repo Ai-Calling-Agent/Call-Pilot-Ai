@@ -21,3 +21,4 @@ python-multipart
 twilio
 twilio[voice]
 websockets
+requests

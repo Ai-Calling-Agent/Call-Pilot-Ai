@@ -204,8 +204,7 @@ class TwilioTranscriber:
             "segments": self.accumulated_turns.copy(),
             "is_complete_turn": True
         }
-        if self.on_complete_turn:
-            await self.on_complete_turn(complete_turn)
+
         
         print(f"🎯 COMPLETE USER TURN: '{complete_turn['transcript']}'")
         print(f"   Combined from {complete_turn['num_segments']} segments")

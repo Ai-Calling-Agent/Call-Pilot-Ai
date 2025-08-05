@@ -21,8 +21,10 @@ async def root():
 
 @app.websocket("/ws")
 async def twilio_ws(websocket: WebSocket):
+    await websocket.accept()
     await handle_twilio_socket(websocket, get_frontend_socket())
 
 @app.websocket("/ws/client")
 async def client_ws(websocket: WebSocket):
+    await websocket.accept()
     await handle_client_socket(websocket)
