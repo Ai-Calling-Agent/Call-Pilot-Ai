@@ -1,4 +1,5 @@
 import base64
+from twilio_transcriber import TwilioTranscriber 
 import json
 from dotenv import load_dotenv
 load_dotenv()
@@ -27,26 +28,89 @@ async def test():
 
 # Sockets
 @app.websocket("/ws")
-async def websocket_connection(websocket:WebSocket):
+async def websocket_connection(websocket: WebSocket):
+    global frontend_socket
     await websocket.accept()
-    print("New Connection Initiated")
+    print("🟢 Twilio connected")
+    async def send_partial_transcript(data):
+        if frontend_socket:
+            try:
+                await frontend_socket.send_json({
+                    "type": "partial_transcript",
+                    "text": data["transcript"],
+                    "confidence": data["confidence"],
+                    "segments": data["segments"],
+                })
+                print("📤 Sent complete user turn to frontend")
+            except Exception as e:
+                print(f"❌ Failed to send partial transcript: {e}")
+
+    async def send_final_transcript(data):
+        # Forward to frontend socket if available
+        if frontend_socket:
+            try:
+                await frontend_socket.send_json({
+                    "type": "final_transcript",
+                    "text": data["transcript"],
+                    "confidence": data["confidence"]
+                })
+                print("✅ Sent transcript to frontend")
+            except Exception as e:
+                print(f"❌ Failed to send to frontend: {e}")
+        else:
+            print("⚠️ No frontend socket connected")
+
+    transcriber = TwilioTranscriber(
+    on_final_transcript=send_final_transcript,
+    on_complete_turn=send_partial_transcript
+)
+
     try:
-        while True: 
+        while True:
             message = await websocket.receive_text()
-            parsed = json.loads(message)
-            event = parsed.get("event")
-            if event == "start":
-                print("🔊 Stream started:", parsed.get("streamSid"))
+            data = json.loads(message)
 
-            elif event == "media":
-                # media.payload is base64-encoded audio (you need to decode + process for STT)
-                print("🎧 Media received (base64 audio):", parsed["media"]["payload"][:30], "...")
+            match data["event"]:
+                case "connected":
+                    await transcriber.connect()
+                    print("Twilio Connected!!")
 
-            elif event == "stop":
-                print("🛑 Stream ended")
-                break
-            
+                case "start":
+                    print("Twilio started!!!")
+
+                case "media":
+                    payload_b64 = data["media"]["payload"]
+                    payload_mulaw = base64.b64decode(payload_b64)
+                    await transcriber.stream_audio(payload_mulaw)
+
+                case "stop":
+                    print("Twilio Stopped")
+                    await transcriber.terminate_session()
+
     except WebSocketDisconnect:
-        print("❌ Client disconnected")
+        print("❌ Twilio disconnected")
+        await transcriber.terminate_session()
 
 
+
+
+
+
+
+
+
+frontend_socket = None
+@app.websocket("/ws/client")
+async def websocket_endpoint(websocket: WebSocket):
+    global frontend_socket
+    await websocket.accept()
+    print("🟢 Frontend WebSocket connected")
+    
+    frontend_socket = websocket  # Save the frontend connection
+
+    try:
+        while True:
+            await websocket.receive_text()  # keep connection alive
+    except WebSocketDisconnect:
+        print("🔌 Frontend WebSocket disconnected")
+        frontend_socket = None
