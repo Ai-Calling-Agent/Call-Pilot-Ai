@@ -1,3 +1,4 @@
+import FeaturesSection from "@/components/FeatureSection";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Phone, Languages, BarChart2, TrendingUp } from "lucide-react";
@@ -44,7 +45,7 @@ export default function Home() {
           <h2 className="text-4xl md:text-5xl font-bold text-white">
             Simple <span className="text-green-500">Monitoring</span> Tool
           </h2>
-          <p className="text-zinc-400 text-lg mt-2">
+          <p className="text-zinc-300 text-lg mt-2">
             Everything You Need, All Together
           </p>
         </div>
@@ -61,8 +62,8 @@ export default function Home() {
               </div>
             </CardHeader>
             <CardContent className="pt-0">
-              <p className="text-zinc-400 leading-relaxed">
-                Never miss a lead—our AI agent makes calls around the clock,
+              <p className="text-zinc-300 leading-relaxed">
+                Never miss a lead, our AI agent makes calls around the clock,
                 automatically reaching prospects across time zones and ensuring
                 your outreach never sleeps.
               </p>
@@ -81,7 +82,7 @@ export default function Home() {
               </div>
             </CardHeader>
             <CardContent className="pt-0">
-              <p className="text-zinc-400 leading-relaxed">
+              <p className="text-zinc-300 leading-relaxed">
                 Speak your customers' language with seamless bilingual
                 conversations in Hindi and English, expanding your reach across
                 diverse markets and demographics.
@@ -101,7 +102,7 @@ export default function Home() {
               </div>
             </CardHeader>
             <CardContent className="pt-0">
-              <p className="text-zinc-400 leading-relaxed">
+              <p className="text-zinc-300 leading-relaxed">
                 Dramatically slash your outreach budget with automated calling
                 that reduces operational costs by up to 70% compared to
                 traditional manual dialing teams.
@@ -121,7 +122,7 @@ export default function Home() {
               </div>
             </CardHeader>
             <CardContent className="pt-0">
-              <p className="text-zinc-400 leading-relaxed">
+              <p className="text-zinc-300 leading-relaxed">
                 Transform prospects into customers with intelligent,
                 personalized AI conversations that adapt in real-time and boost
                 conversion rates by 40% or more.
@@ -130,6 +131,7 @@ export default function Home() {
           </Card>
         </div>
       </div>
+      <FeaturesSection />
     </div>
   );
 }
