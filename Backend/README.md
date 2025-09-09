@@ -5,3 +5,5 @@
 3. .\venv\Scripts\activate [this will activate virtual env]
 4. pip install -r requirements.txt
 5. python -m uvicorn index:app --reload
+
+6. ngrok http 8000
