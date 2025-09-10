@@ -6,12 +6,10 @@ from models.call_request_model import CallRequest
 
 router = APIRouter()
 
+@router.post("/call")
+async def make_call(payload:CallRequest):
+    return await make_outgoing_call(payload)
 
 @router.post("/outgoingcallmessage")
 async def generate_message(req:Request):
     return await message_in_call(req)
-
-
-@router.post("/call")
-async def make_call(payload:CallRequest):
-    return await make_outgoing_call(payload)

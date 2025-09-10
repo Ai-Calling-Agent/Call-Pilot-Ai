@@ -4,7 +4,7 @@ import FeaturesSection from "@/components/FeatureSection";
 import HeroSection from "@/components/HeroSection";
 
 
-export default function Home() {
+const Home = () => {
   return (
     <div className="bg-black text-white">
       <HeroSection/>
@@ -19,3 +19,5 @@ export default function Home() {
     </div>
   );
 }
+
+export default Home;

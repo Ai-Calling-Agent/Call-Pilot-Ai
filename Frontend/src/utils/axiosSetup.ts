@@ -5,7 +5,7 @@ import getUrl from "./getApiUrl";
 
 
 const api = axios.create({
-  baseURL: getUrl() + "/v1",
+  baseURL: getUrl(),
 });
 // Axios request interceptor
 api.interceptors.request.use(
