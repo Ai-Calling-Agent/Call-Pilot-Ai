@@ -28,6 +28,6 @@
     "**/*.tsx",
     ".next/types/**/*.ts",
     "src/app/page.tsx"
-  ],
+, "src/store/slices/index.ys"  ],
   "exclude": ["node_modules"]
 }
