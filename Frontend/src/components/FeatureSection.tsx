@@ -11,7 +11,7 @@ import {
   CarouselDots,
 } from "./ui/carousel";
 
-export default function FeaturesSection() {
+const FeaturesSection = () => {
   return (
     <section className="py-20 px-4 bg-black text-white relative">
       <div className="text-center max-w-3xl mx-auto mb-16">
@@ -126,3 +126,5 @@ export default function FeaturesSection() {
     </section>
   );
 }
+
+export default FeaturesSection;

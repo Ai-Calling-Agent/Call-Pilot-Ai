@@ -1,7 +1,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Phone, Languages, BarChart2, TrendingUp } from "lucide-react";
 
-export default function BenefitSection() {
+const BenefitSection = () => {
   return (
     <div className="py-16 px-4">
       <div className="text-center max-w-4xl mx-auto mb-12">
@@ -101,3 +101,6 @@ export default function BenefitSection() {
     </div>
   );
 }
+
+
+export default BenefitSection;
