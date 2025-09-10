@@ -1,6 +1,7 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
+import Link from "next/link";
 
 const DemoSection = () => {
   return (
@@ -21,12 +22,11 @@ const DemoSection = () => {
           keep your system transparent and reliable.
         </p>
 
-        <Button
-          variant="default"
-          size="lg"
-        >
-          Open Demo →
-        </Button>
+        <Link href="/demo">
+          <Button variant="default" size="lg">
+            Open Demo →
+          </Button>
+        </Link>
       </div>
     </section>
   );
